@@ -85,6 +85,7 @@
   </div>
 
 </div><!-- /container -->
-<script src="/static/app.js"></script>
+{% comment %} <script src="/static/app.js"></script> {% endcomment %}
+<script src="{% static 'app.js' %}" defer></script>
 </body>
 </html>

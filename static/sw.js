@@ -1,58 +1,63 @@
 // static/sw.js
-const CACHE = 'timetracker-v2';
-const ASSETS = ['/', '/static/app.js', '/static/style.css'];
+const CACHE = 'timetracker-v3';
 
-// Install: cache the app shell
-self.addEventListener('install', e => {
-    e.waitUntil(
-        caches.open(CACHE).then(c => c.addAll(ASSETS))
-    );
-    self.skipWaiting();
+const ASSETS = [
+  '/static/app.js',
+  '/static/style.css'
+];
+
+// Install
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(CACHE).then(cache => cache.addAll(ASSETS))
+  );
+  self.skipWaiting();
 });
 
-// Activate: remove old caches
-self.addEventListener('activate', e => {
-    e.waitUntil(
-        caches.keys().then(keys =>
-            Promise.all(
-                keys.filter(k => k !== CACHE).map(k => caches.delete(k))
-            )
+// Activate
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(
+        keys.filter(key => key !== CACHE).map(key => caches.delete(key))
+      )
+    )
+  );
+  self.clients.claim();
+});
+
+// Fetch
+self.addEventListener('fetch', event => {
+  const url = new URL(event.request.url);
+
+  // API → network first
+  if (url.pathname.startsWith('/api/')) {
+    event.respondWith(
+      fetch(event.request).catch(() =>
+        new Response(
+          JSON.stringify({ error: 'offline' }),
+          { headers: { 'Content-Type': 'application/json' } }
         )
+      )
     );
-    self.clients.claim();
-});
+    return;
+  }
 
-// Fetch strategy:
-//   API calls  → network first, silent fail (app handles it)
-//   Everything else → cache first
-self.addEventListener('fetch', e => {
-    const url = new URL(e.request.url);
-
-    if (url.pathname.startsWith('/api/')) {
-        e.respondWith(
-            fetch(e.request).catch(() =>
-                new Response(
-                    JSON.stringify({ error: 'offline' }),
-                    { headers: { 'Content-Type': 'application/json' } }
-                )
-            )
-        );
-        return;
-    }
-
-    e.respondWith(
-        caches.match(e.request).then(hit => hit || fetch(e.request))
-    );
+  // Static → cache first
+  event.respondWith(
+    caches.match(event.request).then(response => response || fetch(event.request))
+  );
 });
 
 // Background sync
-self.addEventListener('sync', e => {
-    if (e.tag === 'sync-entries') {
-        // Tell the open tab to run the sync
-        e.waitUntil(
-            self.clients.matchAll().then(clients =>
-                clients.forEach(c => c.postMessage({ type: 'DO_SYNC' }))
-            )
-        );
-    }
+self.addEventListener('sync', event => {
+  if (event.tag === 'sync-entries') {
+    event.waitUntil(
+      self.clients.matchAll().then(clients =>
+        clients.forEach(client =>
+          client.postMessage({ type: 'DO_SYNC' })
+        )
+      )
+    );
+  }
 });
