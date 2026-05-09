@@ -4,9 +4,13 @@ import dj_database_url
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = 'django-insecure-change-this-in-production'
-DEBUG = False
+DEBUG = True
 
-ALLOWED_HOSTS = ['.onrender.com', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['.onrender.com', 
+    'localhost', 
+    '127.0.0.1', 
+    '10.57.108.182',   # ✅ add this
+]
 
 INSTALLED_APPS = [
     'django.contrib.admin',

@@ -1,0 +1,64 @@
+# =========================
+# Python / Django
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Django stuff
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Migrations cache
+**/migrations/__pycache__/
+
+# =========================
+# Virtual environment
+# =========================
+venv/
+.env/
+.env.*
+.venv/
+
+# =========================
+# Static & media (prod)
+# =========================
+staticfiles/
+media/
+
+# =========================
+# Node / frontend (if any)
+# =========================
+node_modules/
+
+# =========================
+# OS / Editor files
+# =========================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# VS Code
+.vscode/
+
+# PyCharm
+.idea/
+
+# =========================
+# Tests / coverage
+# =========================
+.coverage
+htmlcov/
+
+# =========================
+# Service Worker / build
+# =========================
+*.map
+
+# =========================
+# Secrets
+# =========================
+*.key
+*.pem

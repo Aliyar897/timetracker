@@ -1,0 +1,91 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Time Tracker</title>
+  {% comment %} <link rel="stylesheet" href="/static/style.css"> {% endcomment %}
+  
+  <link rel="stylesheet" href="{% static 'style.css' %}">
+
+</head>
+<body>
+<div class="container">
+
+  <h1>⏱ Time Tracker</h1>
+  <p class="subtitle">Track your working hours — works offline too.</p>
+  <span id="status" class="offline">● Offline</span>
+
+  <!-- Entry form -->
+  <div class="card">
+    <h2>New Entry</h2>
+    <form id="entry-form" method="post">
+            {% csrf_token %}
+      <div class="form-grid">
+        <div>
+          <label for="date">Date</label>
+          <input type="date" id="date" required>
+        </div>
+        <div></div><!-- spacer -->
+        <div>
+          <label for="check-in">Check In</label>
+          <input type="time" id="check-in" required>
+        </div>
+        <div>
+          <label for="check-out">Check Out</label>
+          <input type="time" id="check-out" required>
+        </div>
+        <div class="full">
+          <label for="note">Note (optional)</label>
+          <input type="text" id="note" placeholder="e.g. Deep work session">
+        </div>
+        <div class="full">
+          <button type="submit">＋ Save Entry</button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- Summary -->
+  <div class="summary-grid">
+    <div class="summary-card">
+      <strong id="s-day">—</strong>
+      <span>Today</span>
+    </div>
+    <div class="summary-card">
+      <strong id="s-week">—</strong>
+      <span>This Week</span>
+    </div>
+    <div class="summary-card">
+      <strong id="s-month">—</strong>
+      <span>This Month</span>
+    </div>
+  </div>
+
+  <!-- Records table -->
+  <div class="card">
+    <h2>Records</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>In</th>
+            <th>Out</th>
+            <th>Hours</th>
+            <th>Note</th>
+          </tr>
+        </thead>
+        <tbody id="entries-body">
+          <tr><td colspan="5" class="empty">No entries yet.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /container -->
+{% comment %} <script src="/static/app.js"></script> {% endcomment %}
+<script src="{% static 'app.js' %}" defer></script>
+</body>
+</html>

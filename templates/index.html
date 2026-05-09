@@ -2,70 +2,116 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Time Tracker</title>
-  {% comment %} <link rel="stylesheet" href="/static/style.css"> {% endcomment %}
-  
-  <link rel="stylesheet" href="{% static 'style.css' %}">
 
+  <link rel="stylesheet" href="{% static 'style.css' %}" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 </head>
+
 <body>
 <div class="container">
 
-  <h1>⏱ Time Tracker</h1>
-  <p class="subtitle">Track your working hours — works offline too.</p>
+
+    <div class="header-bar">
+      <div class="header-left">
+        <h1>⏱ Time Tracker</h1>
+        <p class="subtitle">Track your working hours — works offline too.</p>
+      </div>
+
+    <div class="header-right">
+      <span class="username">{{ request.user.username }}</span>
+
+      <form method="post" action="{% url 'logout' %}" class="logout-form">
+        {% csrf_token %}
+        <button style="font-size:24px">  
+          <i class="fa fa-sign-out" style="font-size:25px;color:red"></i>
+        </button>
+
+      </form>
+    </div>
+    </div>
+
+
+
+
   <span id="status" class="offline">● Offline</span>
 
   <!-- Entry form -->
   <div class="card">
     <h2>New Entry</h2>
+
     <form id="entry-form" method="post">
-            {% csrf_token %}
+      {% csrf_token %}
       <div class="form-grid">
+
         <div>
-          <label for="date">Date</label>
-          <input type="date" id="date" required>
+          <label>Date</label>
+          <input type="date" id="date" required />
         </div>
-        <div></div><!-- spacer -->
+
+        <div></div>
+
         <div>
-          <label for="check-in">Check In</label>
-          <input type="time" id="check-in" required>
+          <label>Check In</label>
+          <input type="time" id="check-in" required />
         </div>
+
         <div>
-          <label for="check-out">Check Out</label>
-          <input type="time" id="check-out" required>
+          <label>Check Out</label>
+          <input type="time" id="check-out" required />
         </div>
+
         <div class="full">
-          <label for="note">Note (optional)</label>
-          <input type="text" id="note" placeholder="e.g. Deep work session">
+          <label>Note (optional)</label>
+          <input type="text" id="note" placeholder="e.g. Deep work session" />
         </div>
+
         <div class="full">
           <button type="submit">＋ Save Entry</button>
         </div>
+
       </div>
     </form>
   </div>
 
+  <!-- Earnings toggle -->
+  <button id="show-earnings-btn" class="btn-secondary">
+    👁 Show Earnings (10s)
+  </button>
+
   <!-- Summary -->
   <div class="summary-grid">
+
+    <!-- Today -->
     <div class="summary-card">
-      <strong id="s-day">—</strong>
+      <strong id="s-day-hours">—</strong>
+      <div id="s-day-earnings" class="earnings hidden">$0.00</div>
       <span>Today</span>
     </div>
+
+    <!-- This Week -->
     <div class="summary-card">
-      <strong id="s-week">—</strong>
+      <strong id="s-week-hours">—</strong>
+      <div id="s-week-earnings" class="earnings hidden">$0.00</div>
       <span>This Week</span>
     </div>
+
+    <!-- This Month -->
     <div class="summary-card">
-      <strong id="s-month">—</strong>
+      <strong id="s-month-hours">—</strong>
+      <div id="s-month-earnings" class="earnings hidden">$0.00</div>
       <span>This Month</span>
     </div>
+
   </div>
 
   <!-- Records table -->
   <div class="card">
     <h2>Records</h2>
+
     <div class="table-wrap">
       <table>
         <thead>
@@ -77,15 +123,19 @@
             <th>Note</th>
           </tr>
         </thead>
+
         <tbody id="entries-body">
-          <tr><td colspan="5" class="empty">No entries yet.</td></tr>
+          <tr>
+            <td colspan="5" class="empty">No entries yet.</td>
+          </tr>
         </tbody>
       </table>
     </div>
   </div>
 
-</div><!-- /container -->
-{% comment %} <script src="/static/app.js"></script> {% endcomment %}
+</div>
+
+<!-- App JS -->
 <script src="{% static 'app.js' %}" defer></script>
 </body>
 </html>
