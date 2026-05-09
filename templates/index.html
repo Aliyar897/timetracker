@@ -115,6 +115,16 @@
     <h2>Records</h2>
 
     <div class="table-wrap">
+            
+
+      <div class="filter-bar">
+        <input type="date" id="start-date">
+        <input type="date" id="end-date">
+
+        <button onclick="filterByDateRange()">Filter</button>
+        <button onclick="resetFilter()">Reset</button>
+      </div>
+
       <table>
         <thead>
           <tr>

@@ -1,5 +1,15 @@
 # tracker/views.py
 import datetime
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from django.contrib.auth.decorators import login_required
+from datetime import datetime
+from .models import TimeEntry
+from .serializers import TimeEntrySerializer
+
+from datetime import date, timedelta
+
+
 from decimal import Decimal
 from django.shortcuts import render
 from django.db.models import Sum
@@ -148,27 +158,29 @@ def bulk_sync(request):
 @api_view(['GET'])
 @login_required
 def summary(request):
-    today = datetime.date.today()
-    week_start = today - datetime.timedelta(days=today.weekday())
+    today = date.today()
+    week_start = today - timedelta(days=today.weekday())
     month_start = today.replace(day=1)
 
     profile, _ = Profile.objects.get_or_create(
         user=request.user,
-        defaults={'hourly_rate': Decimal('0.00')}
+        defaults={'hourly_rate': 0}
     )
-    rate = profile.hourly_rate
+    rate = float(profile.hourly_rate)
 
     def total(qs):
-        hours = qs.aggregate(h=Sum('hours'))['h'] or Decimal('0.00')
-        earnings = (hours * rate).quantize(Decimal('0.01'))
+        hours = qs.aggregate(h=Sum('hours'))['h'] or 0
+        hours = float(hours)
+
         return {
-            'hours': float(hours),
-            'earnings': float(earnings)
+            'hours': hours,
+            'earnings': round(hours * rate, 2)
         }
 
     qs = TimeEntry.objects.filter(user=request.user)
 
     return Response({
+        'rate': rate,  # ✅ 👈 ADD THIS
         'day': total(qs.filter(date=today)),
         'week': total(qs.filter(date__gte=week_start)),
         'month': total(qs.filter(date__gte=month_start)),
@@ -183,3 +195,24 @@ def delete_entry(request, entry_id):
         return Response({"status": "deleted"})
     except TimeEntry.DoesNotExist:
         return Response({"error": "Not found"}, status=404)
+
+
+@api_view(['GET'])
+@login_required
+def get_entries(request):
+    qs = TimeEntry.objects.filter(user=request.user)
+
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+
+    print("Filtering entries from", start_date, "to", end_date)
+    
+    if start_date:
+        start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
+        qs = qs.filter(date__gte=start_date)
+
+    if end_date:
+        end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
+        qs = qs.filter(date__lte=end_date)
+
+    return Response(TimeEntrySerializer(qs, many=True).data)

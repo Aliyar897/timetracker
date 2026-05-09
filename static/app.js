@@ -124,37 +124,46 @@ async function renderEntries() {
 async function renderSummaryFromServer() {
     try {
         const res = await fetch('/api/summary/');
-        if (!res.ok) return;
-
         const data = await res.json();
 
-        // HOURS
+        userRate = data.rate;  // ✅ store rate
+
         document.getElementById('s-day-hours').textContent =
             data.day.hours.toFixed(2) + 'h';
+
         document.getElementById('s-week-hours').textContent =
             data.week.hours.toFixed(2) + 'h';
+
         document.getElementById('s-month-hours').textContent =
             data.month.hours.toFixed(2) + 'h';
 
-        // EARNINGS (hidden by default)
         document.getElementById('s-day-earnings').textContent =
             '£' + data.day.earnings.toFixed(2);
+
         document.getElementById('s-week-earnings').textContent =
             '£' + data.week.earnings.toFixed(2);
+
         document.getElementById('s-month-earnings').textContent =
             '£' + data.month.earnings.toFixed(2);
+
     } catch (err) {
-        console.warn('Summary fetch failed:', err);
+        console.warn('Summary fetch failed');
     }
 }
-
 // ─── Sync to server ───────────────────────────────────────────────────────────
 async function syncToServer() {
     const all = await getAll();
     const unsynced = all.filter(e => !e.synced);
+
     if (!unsynced.length) {
         setStatus('online');
-        await renderSummaryFromServer();
+
+        // ✅ ALWAYS fetch server data
+        await replaceLocalWithServer();
+
+        await renderEntries();            // ✅ update table
+        await renderSummaryFromServer();  // ✅ update cards
+
         return;
     }
 
@@ -178,6 +187,8 @@ async function syncToServer() {
                 }
             }
         }
+        
+        await replaceLocalWithServer();   // ✅ NEW LINE
 
         await renderEntries();
         await renderSummaryFromServer();
@@ -319,8 +330,119 @@ async function deleteEntryUI(id) {
 }
 
 
+async function replaceLocalWithServer() {
+    try {
+        const res = await fetch('/api/entries/');
+        const data = await res.json();
 
+        const db = await openDB();
 
+        const tx = db.transaction(DB.store, 'readwrite');
+        const store = tx.objectStore(DB.store);
+
+        store.clear();  // ✅ correct
+
+        data.forEach(item => {
+            store.put({
+                ...item,
+                synced: true
+            });
+        });
+
+        return new Promise((resolve) => {
+            tx.oncomplete = resolve;  // ✅ wait until done
+        });
+
+    } catch (err) {
+        console.warn("DB replace failed");
+    }
+}
+
+// ✅ FILTER BY DATE RANGE
+async function filterByDateRange() {
+    const start = document.getElementById('start-date').value;
+    const end = document.getElementById('end-date').value;
+
+    if (!start && !end) return;
+
+    let url = '/api/entries/?';
+
+    if (start && end) {
+        url = `/api/entries/?start_date=${start}&end_date=${end}`;
+    } else if (start) {
+        url = `/api/entries/?start_date=${start}`;
+    } else if (end) {
+        url = `/api/entries/?end_date=${end}`;
+    }
+
+    const res = await fetch(url);
+    const data = await res.json();
+
+    renderFilteredEntries(data);
+
+    // ✅ update BOTH hours + earnings
+    updateSummaryFromEntries(data);
+}
+
+let userRate = 0;
+
+function renderFilteredEntries(entries) {
+    const tbody = document.getElementById('entries-body');
+
+    if (!entries.length) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="empty">No results found</td>
+            </tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = entries.map(e => `
+        <tr>
+          <td>${e.date}</td>
+          <td>${e.check_in}</td>
+          <td>${e.check_out}</td>
+          <td class="hours">${e.hours}h</td>
+          <td>${e.note || '<span style="color:#ccc">—</span>'}</td>
+
+          <td class="actions">
+            <button onclick="editEntry('${e.id}')" class="icon-btn">✏️</button>
+            <button onclick="deleteEntryUI('${e.id}')" class="icon-btn danger">🗑</button>
+          </td>
+        </tr>
+    `).join('');
+}
+
+async function resetFilter() {
+    if (navigator.onLine) {
+        await syncToServer();   // ✅ reload from server
+    } else {
+        await renderEntries();  // ✅ fallback
+    }
+}
+
+function updateSummaryFromEntries(entries) {
+    let totalHours = 0;
+
+    entries.forEach(e => {
+        totalHours += Number(e.hours);
+    });
+
+    totalHours = Number(totalHours.toFixed(2));
+
+    // ✅ hours
+    document.getElementById('s-day-hours').textContent = totalHours + 'h';
+    document.getElementById('s-week-hours').textContent = totalHours + 'h';
+    document.getElementById('s-month-hours').textContent = totalHours + 'h';
+
+    // ✅ dynamic earnings
+    const earnings = (totalHours * userRate).toFixed(2);
+
+    document.getElementById('s-day-earnings').textContent = '£' + earnings;
+    document.getElementById('s-week-earnings').textContent = '£' + earnings;
+    document.getElementById('s-month-earnings').textContent = '£' + earnings;
+}
 
 
 // // static/app.js  — offline-first time tracker

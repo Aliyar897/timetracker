@@ -8,10 +8,10 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     
     path('',                     views.index, name='index'),
-    path('api/entries/',         views.entries),
+    # path('api/entries/',         views.entries),
     path('api/entries/bulk/',    views.bulk_sync),
     path('api/summary/',         views.summary),
-
+    path('api/entries/', views.get_entries),
     
     # Auth
     path('login/', views.login_view, name='login'),
