@@ -1,5 +1,5 @@
 // static/sw.js
-const CACHE = 'timetracker-v3';
+const CACHE = 'timetracker-v4';
 
 const ASSETS = [
   '/static/app.js',
@@ -30,7 +30,19 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
 
-  // API → network first
+  // ✅ Always fetch fresh HTML (important for PWA sync)
+    
+  if (event.request.mode === 'navigate') {
+      event.respondWith(
+          fetch(event.request).catch(() =>
+              caches.match('/')
+          )
+      );
+      return;
+  }
+
+
+  // ✅ API → network first
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(
       fetch(event.request).catch(() =>
@@ -43,9 +55,11 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Static → cache first
+  // ✅ Static → cache first
   event.respondWith(
-    caches.match(event.request).then(response => response || fetch(event.request))
+    caches.match(event.request).then(response =>
+      response || fetch(event.request)
+    )
   );
 });
 
