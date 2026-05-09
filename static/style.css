@@ -179,3 +179,27 @@ tr:last-child td { border-bottom: none; }
 .btn-logout:active {
   background: #f3f4f6;
 }
+
+.actions {
+  display: flex;
+  gap: 6px;
+}
+
+.icon-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 4px;
+  border-radius: 4px;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.icon-btn:hover {
+  background: #f3f4f6;
+  transform: scale(1.1);
+}
+
+.icon-btn.danger:hover {
+  background: #fee2e2;
+}

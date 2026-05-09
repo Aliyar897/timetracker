@@ -105,16 +105,18 @@ async function renderEntries() {
     }
 
     tbody.innerHTML = entries.map(e => `
-        <tr>
-            <td>${e.date}</td>
-            <td>${e.check_in}</td>
-            <td>${e.check_out}</td>
-            <td class="hours">${e.hours}h</td>
-            <td>
-                ${e.note || '<span style="color:#ccc">—</span>'}
-                ${!e.synced ? '<span class="unsynced"> ⚠ unsynced</span>' : ''}
-            </td>
-        </tr>
+    <tr>
+    <td>${e.date}</td>
+    <td>${e.check_in}</td>
+    <td>${e.check_out}</td>
+    <td class="hours">${e.hours}h</td>
+    <td>${e.note || '<span style="color:#ccc">—</span>'}</td>
+
+    <td class="actions">
+        <button onclick="editEntry('${e.id}')" class="icon-btn">✏️</button>
+        <button onclick="deleteEntryUI('${e.id}')" class="icon-btn danger">🗑</button>
+    </td>
+    </tr>
     `).join('');
 }
 
@@ -152,6 +154,7 @@ async function syncToServer() {
     const unsynced = all.filter(e => !e.synced);
     if (!unsynced.length) {
         setStatus('online');
+        await renderSummaryFromServer();
         return;
     }
 
@@ -192,6 +195,7 @@ document.getElementById('entry-form').addEventListener('submit', async e => {
     const checkIn = document.getElementById('check-in').value;
     const checkOut = document.getElementById('check-out').value;
     const hours = calcHours(checkIn, checkOut).toFixed(2);
+    const editingId = document.getElementById('editing-id').value;
 
     if (hours <= 0) {
         alert('Check-out must be after check-in.');
@@ -199,7 +203,8 @@ document.getElementById('entry-form').addEventListener('submit', async e => {
     }
 
     const entry = {
-        id: Date.now().toString(),
+
+        id: editingId || Date.now().toString(),
         date: document.getElementById('date').value,
         check_in: checkIn,
         check_out: checkOut,
@@ -211,8 +216,15 @@ document.getElementById('entry-form').addEventListener('submit', async e => {
     await saveEntry(entry);
     await renderEntries();
 
-    if (navigator.onLine) await syncToServer();
-    else setStatus('offline');
+
+    if (navigator.onLine) {
+        await syncToServer();   // ✅ server gets updated
+    } else {
+        setStatus('offline');
+    }
+
+    document.getElementById('editing-id').value = '';
+    document.querySelector('#entry-form button').textContent = '＋ Save Entry';
 
     e.target.reset();
     document.getElementById('date').value = today();
@@ -256,12 +268,55 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 
+async function editEntry(id) {
+    const all = await getAll();
+    const entry = all.find(e => e.id === id);
 
+    if (!entry) return;
 
+    // Fill form
+    document.getElementById('editing-id').value = entry.id;
+    document.getElementById('date').value = entry.date;
+    document.getElementById('check-in').value = entry.check_in;
+    document.getElementById('check-out').value = entry.check_out;
+    document.getElementById('note').value = entry.note;
 
+    // Change button text
+    document.querySelector('#entry-form button').textContent = 'Update Entry';
 
+    // Scroll to form (nice UX)
+    document.getElementById('entry-form').scrollIntoView({
+        behavior: 'smooth'
+    });
+}
 
+async function deleteEntryUI(id) {
+    if (!confirm("Delete this entry?")) return;
 
+    // ✅ delete locally first
+    const db = await openDB();
+    const tx = db.transaction(DB.store, 'readwrite');
+    tx.objectStore(DB.store).delete(id);
+
+    if (navigator.onLine) {
+        try {
+            await fetch(`/api/entries/${id}/`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            });
+        } catch (err) {
+            console.warn("Server delete failed, will retry later");
+        }
+    }
+
+    await renderEntries();
+    if (navigator.onLine) {
+        await syncToServer();   // ✅ sync handles summary
+    }
+
+}
 
 
 

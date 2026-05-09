@@ -106,43 +106,37 @@ def bulk_sync(request):
     errors = []
 
     for item in request.data:
-        serializer = TimeEntrySerializer(data=item)
+        try:
+            obj = TimeEntry.objects.filter(
+                id=item['id'],
+                user=request.user
+            ).first()
 
-        if serializer.is_valid():
-            try:
-                # ✅ ONLY look at entries belonging to THIS user
-                obj = TimeEntry.objects.filter(
-                    id=item['id'],
-                    user=request.user
-                ).first()
+            if obj:
+                # ✅ UPDATE existing entry properly
+                serializer = TimeEntrySerializer(
+                    obj,
+                    data=item,
+                    partial=True
+                )
 
-                if obj:
-                    # ✅ update MY entry only
-                    obj.date = serializer.validated_data['date']
-                    obj.check_in = serializer.validated_data['check_in']
-                    obj.check_out = serializer.validated_data['check_out']
-                    obj.hours = serializer.validated_data['hours']
-                    obj.note = serializer.validated_data.get('note', '')
-                    obj.save()
-                else:
-                    # ✅ create a NEW entry owned by ME
-                    data = serializer.validated_data.copy()
-                    data['id'] = item['id']
-                    data['user'] = request.user
+            else:
+                # ✅ CREATE new entry
+                serializer = TimeEntrySerializer(data=item)
 
-                    TimeEntry.objects.create(**data)
-
+            if serializer.is_valid():
+                serializer.save(user=request.user)
                 synced_ids.append(item['id'])
-
-            except Exception as e:
+            else:
                 errors.append({
                     'id': item.get('id'),
-                    'error': str(e)
+                    'errors': serializer.errors
                 })
-        else:
+
+        except Exception as e:
             errors.append({
                 'id': item.get('id'),
-                'errors': serializer.errors
+                'error': str(e)
             })
 
     return Response({
@@ -179,3 +173,13 @@ def summary(request):
         'week': total(qs.filter(date__gte=week_start)),
         'month': total(qs.filter(date__gte=month_start)),
     })
+
+@api_view(['DELETE'])
+@login_required
+def delete_entry(request, entry_id):
+    try:
+        obj = TimeEntry.objects.get(id=entry_id, user=request.user)
+        obj.delete()
+        return Response({"status": "deleted"})
+    except TimeEntry.DoesNotExist:
+        return Response({"error": "Not found"}, status=404)
